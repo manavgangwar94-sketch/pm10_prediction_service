@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PM10 Dust Prediction Dashboard</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..900&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+    
+    <style>
+        /* 1. Base Styles & Font */
+        body { 
+            font-family: 'Inter', sans-serif;
+            color: var(--pico-color-white);
+            margin: 0;
+        }
+
+        /* 2. Full-Screen Background Image with Dark Overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; 
+            
+            /* CSS Layers: Gradient for heavy dark overlay + Image URL */
+            background-image: linear-gradient(
+                to bottom, 
+                rgba(0, 0, 0, 0.75) 0%, 
+                rgba(0, 0, 0, 0.9) 100% 
+            ), 
+            /* --- YOU MUST CONFIRM THIS IMAGE PATH (e.g., assets/mine_site.jpg) --- */
+            url('assets/mine_site.jpg'); 
+            
+            background-size: cover;
+            background-position: center;
+            filter: brightness(0.8); 
+        }
+        
+        /* 3. Main Content Container Styling */
+  .container { 
+            max-width: 900px; 
+            margin: 4rem auto; 
+            padding: 2.5rem; 
+            background-color: rgba(18, 18, 18, 0.9); 
+            border-radius: var(--pico-border-radius); 
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7); 
+        }
+        
+        /* 4. Heading and Subtitle Styling */
+        header { text-align: center; margin-bottom: 3rem; }
+        header h1 {
+            font-size: 2.8rem; 
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: var(--pico-primary-inverse); 
+        }
+        
+        /* 5. Feature Input Label Styling (Smaller Font) */
+        label { 
+            font-size: 0.85rem; 
+            font-weight: 500;
+            margin-bottom: 0.2rem;
+            opacity: 0.85; 
+        }
+
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+  .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+
+        /* General form section styling */
+        section hgroup h2 { font-size: 1.25rem; }
+        section hgroup p { font-size: 0.9rem; opacity: 0.7; }
+
+  .result-card { 
+            padding: 2rem; 
+            text-align: center; 
+            border-radius: var(--pico-border-radius);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4); 
+            font-weight: 600;
+        }
+  .result-value { font-size: 3.5rem; font-weight: 800; margin: 0.5rem 0; }
+        
+        /* AQI Status Colors (Dark aesthetic palette) */
+  .aqi-Good { background-color: #0c6e27; color: #fff; } 
+  .aqi-Moderate { background-color: #a76500; color: #fff; } 
+  .aqi-UnhealthySensitive { background-color: #b33939; color: #fff; } 
+  .aqi-Unhealthy { background-color: #793f5b; color: #fff; } 
+  .aqi-Hazardous { background-color: #4a1930; color: #fff; } 
+
+        @media (max-width: 768px) {
+      .grid-3,.grid-2 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <main class="container">
+        <header>
+            <h1>RAMPURA AGUCHA MINE DUST FORECAST</h1>
+            <p role="doc-subtitle">LSTM-powered Predictive Modeling for PM10 Concentration.</p>
+        </header>
+
+        <form id="predictionForm">
+            <div class="grid-2">
+                <section>
+                    <hgroup>
+                        <h2>Operational Parameters</h2>
+                        <p>Key variables controlled by site management.</p>
+                    </hgroup>
+                    <label for="Vehicle_Speed_kmh">Vehicle Speed (km/h)</label>
+                    <input type="number" id="Vehicle_Speed_kmh" name="Vehicle_Speed_kmh" step="any" required>
+                    
+                    <label for="Vehicle_Weight_tons">Vehicle Weight (tons)</label>
+                    <input type="number" id="Vehicle_Weight_tons" name="Vehicle_Weight_tons" step="any" required>
+                    
+                    <label for="Truck_Count_hr">Truck Count (per hour)</label>
+                    <input type="number" id="Truck_Count_hr" name="Truck_Count_hr" step="any" required>
+
+                    <label for="Watering_Interval_hr">Watering Interval (hr)</label>
+                    <input type="number" id="Watering_Interval_hr" name="Watering_Interval_hr" step="any" required>
+                </section>
+
+                <section>
+                    <hgroup>
+                        <h2>Road & Environmental Factors</h2>
+                        <p>Natural and physical conditions affecting dust.</p>
+                    </hgroup>
+                    <label for="Silt_Content_pc">Silt Content (%)</label>
+                    <input type="number" id="Silt_Content_pc" name="Silt_Content_pc" step="any" required>
+                    
+                    <label for="Road_Moisture_pc">Road Moisture (%)</label>
+                    <input type="number" id="Road_Moisture_pc" name="Road_Moisture_pc" step="any" required>
+                    
+                    <label for="Surface_Roughness">Surface Roughness</label>
+                    <input type="number" id="Surface_Roughness" name="Surface_Roughness" step="any" required>
+
+                    <label for="Temperature_C">Temperature (°C)</label>
+                    <input type="number" id="Temperature_C" name="Temperature_C" step="any" required>
+                    
+                    <label for="Wind_Speed_mps">Wind Speed (m/s)</label>
+                    <input type="number" id="Wind_Speed_mps" name="Wind_Speed_mps" step="any" required>
+                    
+                    <label for="Relative_Humidity_pc">Relative Humidity (%)</label>
+                    <input type="number" id="Relative_Humidity_pc" name="Relative_Humidity_pc" step="any" required>
+                    
+                    <label for="Rainfall_mm_hr">Rainfall (mm/hr)</label>
+                    <input type="number" id="Rainfall_mm_hr" name="Rainfall_mm_hr" step="any" required>
+                </section>
+            </div>
+
+            <section>
+                <hgroup>
+                    <h2>Historical Context</h2>
+                    <p>Previous 3 PM10 readings required for time-series context.</p>
+                </hgroup>
+                <div class="grid-3">
+                    <div>
+                        <label for="PM10_lag_1">PM10 Lag 1 (µg/m³, Most Recent)</label>
+                        <input type="number" id="PM10_lag_1" name="PM10_lag_1" step="any" required>
+                    </div>
+                    <div>
+                        <label for="PM10_lag_2">PM10 Lag 2 (µg/m³)</label>
+                        <input type="number" id="PM10_lag_2" name="PM10_lag_2" step="any" required>
+                    </div>
+                    <div>
+                        <label for="PM10_lag_3">PM10 Lag 3 (µg/m³)</label>
+                        <input type="number" id="PM10_lag_3" name="PM10_lag_3" step="any" required>
+                    </div>
+                </div>
+            </section>
+            
+            <footer>
+                <button type="submit" role="button">Get Real-Time PM10 Forecast</button>
+            </footer>
+        </form>
+
+        <article id="result-card" class="result-card" hidden>
+            <h2>Prediction Summary</h2>
+            <progress indeterminate="true" id="loading-message" hidden>Calculating prediction...</progress>
+            <div id="predictionDisplay">
+                <p>Predicted PM10 Concentration:</p>
+                <p id="predictionValue" class="result-value">--</p>
+                <p id="aqiStatus">--</p>
+                <small id="aqiAdvice" role="contentinfo">--</small>
+            </div>
+        </article>
+    </main>
+
+    <script>
+        // AQI Categorization (for health and operational advice) 
+        function getAqiStatus(pm10) {
+            let category, advice, cssClass;
+            
+            // Using standard AQI bands for actionable advice 
+            if (pm10 <= 50) {
+                category = "Good";
+                advice = "Air quality is satisfactory. Little or no risk. Enjoy activities.";
+                cssClass = "aqi-Good";
+            } else if (pm10 <= 100) {
+                category = "Moderate";
+                advice = "Air quality is acceptable. Sensitive groups should consider reducing outdoor exertion.";
+                cssClass = "aqi-Moderate";
+            } else if (pm10 <= 150) {
+                category = "Unhealthy for Sensitive Groups";
+                advice = "Sensitive groups: Plan strenuous outdoor activities when air quality is better. General public is less likely to be affected.";
+                cssClass = "aqi-UnhealthySensitive";
+            } else if (pm10 <= 200) {
+                category = "Unhealthy (Poor)";
+                advice = "Sensitive groups: Avoid strenuous outdoor activities. Everyone: Cut back or reschedule strenuous outdoor activities.";
+                cssClass = "aqi-Unhealthy";
+            } else { // 201+
+                category = "Hazardous (Severe)";
+                advice = "Sensitive groups: Avoid all outdoor physical activities. Everyone: Significantly cut back on outdoor physical activities.";
+                cssClass = "aqi-Hazardous";
+            }
+            return { category, advice, cssClass };
+        }
+
+        document.getElementById('predictionForm').addEventListener('submit', async function(e) {
+            e.preventDefault(); 
+            
+            const form = e.target;
+            const resultCard = document.getElementById('result-card');
+            const loadingMessage = document.getElementById('loading-message');
+            const predictionValue = document.getElementById('predictionValue');
+            const aqiStatus = document.getElementById('aqiStatus');
+            const aqiAdvice = document.getElementById('aqiAdvice');
+            
+            // Show loading state
+            resultCard.hidden = false;
+            loadingMessage.hidden = false;
+            
+            predictionValue.textContent = '--';
+            aqiStatus.textContent = '';
+            aqiAdvice.textContent = '';
+            resultCard.className = 'result-card'; 
+
+            // 1. Gather inputs into a payload object 
+            const payload = {};
+            // CORRECTED: List of all 15 feature IDs - MUST match Pydantic model in main.py order!
+            const featureIds =;
+            
+            featureIds.forEach(id => {
+                // parseFloat ensures numerical data type for the JSON payload [1, 2]
+                payload[id] = parseFloat(form.elements[id].value);
+            });
+
+            // 2. Send the POST request to the FastAPI endpoint [3, 4]
+            const API_ENDPOINT = '/api/v1/predict/';
+            const url = window.location.origin + API_ENDPOINT;
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload) 
+                });
+
+                loadingMessage.hidden = true; 
+
+                if (!response.ok) {
+                    // Handle non-200 HTTP responses (e.g., validation errors) [5]
+                    const error = await response.json();
+                    predictionValue.innerHTML = `API Error (${response.status})`;
+                    aqiStatus.textContent = error.detail? error.detail.msg : 'Server error: Check all 15 input fields.';
+                    aqiAdvice.textContent = '';
+                    resultCard.className = 'result-card aqi-Hazardous';
+                    return;
+                }
+
+                // 3. Parse JSON response 
+                const data = await response.json();
+                const pm10_prediction = data.PM10_ugm3;
+                
+                // 4. Feature: Calculate AQI Status
+                const { category, advice, cssClass } = getAqiStatus(pm10_prediction);
+                
+                // 5. Display Results
+                predictionValue.innerHTML = `${pm10_prediction} <small>&micro;g/m³</small>`;
+                aqiStatus.textContent = `AQI Category: ${category}`;
+                aqiAdvice.textContent = `Health Advice: ${advice}`;
+                resultCard.className = `result-card ${cssClass}`;
+
+            } catch (error) {
+                loadingMessage.hidden = true;
+                predictionValue.innerHTML = `Network Error`;
+                aqiStatus.textContent = `Could not reach prediction service.`;
+                aqiAdvice.textContent = `Please ensure the Python backend server is running and accessible.`;
+                resultCard.className = 'result-card aqi-Hazardous';
+                console.error('Fetch Error:', error);
+            }
+        });
+    </script>
+
+</body>
+</html>
